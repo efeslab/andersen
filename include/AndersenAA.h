@@ -11,14 +11,18 @@ private:
   friend llvm::AAResultBase<AndersenAAResult>;
 
   Andersen anders;
-  llvm::AliasResult andersenAlias(const llvm::Value *, const llvm::Value *);
-
+  
 public:
   AndersenAAResult(const llvm::Module &);
+
+  llvm::AliasResult andersenAlias(const llvm::Value *, const llvm::Value *);
 
   llvm::AliasResult alias(const llvm::MemoryLocation &,
                           const llvm::MemoryLocation &);
   bool pointsToConstantMemory(const llvm::MemoryLocation &, bool);
+
+  bool getPointsToSet(const llvm::Value *v,
+                      std::vector<const llvm::Value *> &ptsSet) const;
 };
 
 class AndersenAAWrapperPass : public llvm::ModulePass {

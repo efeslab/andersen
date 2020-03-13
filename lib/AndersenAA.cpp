@@ -88,6 +88,11 @@ bool AndersenAAResult::pointsToConstantMemory(const MemoryLocation &loc,
   return true;
 }
 
+bool AndersenAAResult::getPointsToSet(const llvm::Value *v,
+                      std::vector<const llvm::Value *> &ptsSet) const {
+  return anders.getPointsToSet(v, ptsSet);
+}
+
 AndersenAAResult::AndersenAAResult(const Module &m) : anders(m) {}
 
 void AndersenAAWrapperPass::getAnalysisUsage(AnalysisUsage &AU) const {

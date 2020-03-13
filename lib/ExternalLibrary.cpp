@@ -60,6 +60,9 @@ static const char *mallocFuncs[] = {"malloc",
                                     "getenv",
                                     "memalign",
                                     "posix_memalign",
+                                    // Technically not true, but works for our purposes.
+                                    "mmap",
+                                    "mmap64",
                                     nullptr};
 
 static const char *reallocFuncs[] = {"realloc", "strtok", "strtok_r", nullptr};
@@ -67,7 +70,8 @@ static const char *reallocFuncs[] = {"realloc", "strtok", "strtok_r", nullptr};
 static const char *retArg0Funcs[] = {
     "fgets",    "gets",       "stpcpy",  "strcat",  "strchr",
     "strcpy",   "strerror_r", "strncat", "strncpy", "strpbrk",
-    "strptime", "strrchr",    "strstr",  "getcwd",  nullptr};
+    "strptime", "strrchr",    "strstr",  "getcwd",  "klee_pmem_mark_persistent",
+    nullptr};
 
 static const char *retArg1Funcs[] = {
     // Actually the return value of signal() will NOT alias its second argument,
