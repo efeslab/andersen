@@ -42,7 +42,10 @@ static const char *noopFuncs[] = {
     "llvm.memset.p0i8.i64", "llvm.va_end",
     // The following functions might not be NOOP. They need to be removed from
     // this list in the future
-    "setrlimit", "getrlimit", nullptr};
+    "setrlimit", "getrlimit", 
+    // (iangneal): things not included
+    "fstat64", "__exit_cleanup",
+    nullptr};
 
 static const char *mallocFuncs[] = {"malloc",
                                     "valloc",
@@ -63,6 +66,8 @@ static const char *mallocFuncs[] = {"malloc",
                                     // Technically not true, but works for our purposes.
                                     "mmap",
                                     "mmap64",
+                                    "klee_pmem_mark_persistent",
+                                    "klee_pmem_alloc_pmem",
                                     nullptr};
 
 static const char *reallocFuncs[] = {"realloc", "strtok", "strtok_r", nullptr};
@@ -70,7 +75,7 @@ static const char *reallocFuncs[] = {"realloc", "strtok", "strtok_r", nullptr};
 static const char *retArg0Funcs[] = {
     "fgets",    "gets",       "stpcpy",  "strcat",  "strchr",
     "strcpy",   "strerror_r", "strncat", "strncpy", "strpbrk",
-    "strptime", "strrchr",    "strstr",  "getcwd",  "klee_pmem_mark_persistent",
+    "strptime", "strrchr",    "strstr",  "getcwd",
     nullptr};
 
 static const char *retArg1Funcs[] = {

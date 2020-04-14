@@ -93,6 +93,11 @@ bool AndersenAAResult::getPointsToSet(const llvm::Value *v,
   return anders.getPointsToSet(v, ptsSet);
 }
 
+void AndersenAAResult::getAllAllocationSites(
+  std::vector<const llvm::Value *> &allocSites) const {
+  anders.getAllAllocationSites(allocSites);
+}
+
 AndersenAAResult::AndersenAAResult(const Module &m) : anders(m) {}
 
 void AndersenAAWrapperPass::getAnalysisUsage(AnalysisUsage &AU) const {

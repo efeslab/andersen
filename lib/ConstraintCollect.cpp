@@ -349,7 +349,22 @@ void Andersen::collectConstraintsForInstruction(const Instruction *inst) {
 // - ValueNode(callsite) = ReturnNode(call target)
 // - ValueNode(formal arg) = ValueNode(actual arg)
 void Andersen::addConstraintForCall(ImmutableCallSite cs) {
-  if (const Function *f = cs.getCalledFunction()) // Direct call
+  const Function *f = cs.getCalledFunction();
+  // Sometimes the functions have pointer casts, which are technically not indirect
+  // calls, but prevent LLVM from automatically setting the called function.
+  if (!f) {
+    f = dyn_cast<Function>(cs.getCalledValue()->stripPointerCasts());
+  }
+  // Sometimes, we also get pure function pointers.
+  if (!f) {
+    const LoadInst *li = dyn_cast<LoadInst>(cs.getCalledValue());
+    if (li) {
+      f = dyn_cast<Function>(li->getPointerOperand());
+
+    }
+  }
+
+  if (f) // Direct call
   {
     if (f->isDeclaration() || f->isIntrinsic()) // External library call
     {
@@ -420,6 +435,20 @@ void Andersen::addConstraintForCall(ImmutableCallSite cs) {
       if (!f.getFunctionType()->isVarArg() && f.arg_size() != cs.arg_size())
         // #arg mismatch
         continue;
+      
+      // Check if the argument types match with what is being given.
+      bool equivalent_args = true;
+      for (unsigned i = 0; i < f.arg_size(); ++i) {
+        const Argument *f_arg = (f.arg_begin() + i);
+        const Value *c_arg = (cs.arg_begin() + i)->get();
+        if (f_arg->getType() != c_arg->getType()) {
+          equivalent_args = false;
+        }
+      }
+      if (!equivalent_args) continue;
+
+      // Check if the return type matches what is being given.
+      if (f.getReturnType() != cs.getType()) continue;
 
       if (f.isDeclaration() || f.isIntrinsic()) // External library call
       {

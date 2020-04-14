@@ -23,6 +23,9 @@ public:
 
   bool getPointsToSet(const llvm::Value *v,
                       std::vector<const llvm::Value *> &ptsSet) const;
+
+  void
+  getAllAllocationSites(std::vector<const llvm::Value *> &allocSites) const;
 };
 
 class AndersenAAWrapperPass : public llvm::ModulePass {
@@ -40,6 +43,7 @@ public:
   bool runOnModule(llvm::Module &) override;
   // bool doFinalization(llvm::Module&) override;
   void getAnalysisUsage(llvm::AnalysisUsage &AU) const override;
+
 };
 
 #endif
