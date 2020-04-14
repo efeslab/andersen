@@ -11,6 +11,19 @@
 
 using namespace llvm;
 
+/**
+ * 
+ */
+static const char *forceMallocFuncs[] = {"mmap", "mmap64", nullptr};
+
+static bool lookupName(const char *table[], const char *str) {
+  for (unsigned i = 0; table[i] != nullptr; ++i) {
+    if (strcmp(table[i], str) == 0)
+      return true;
+  }
+  return false;
+}
+
 // CollectConstraints - This stage scans the program, adding a constraint to the
 // Constraints list for each instruction in the program that induces a
 // constraint, and setting up the initial points-to graph.
@@ -394,6 +407,23 @@ void Andersen::addConstraintForCall(ImmutableCallSite cs) {
           }
         }
       }
+    } else if (lookupName(forceMallocFuncs, f->getName().data())) 
+    {
+      // (iangneal): some functions we WANT to treat as allocation sites, even
+      // if we have their implementation.
+      // Library calls that might allocate memory.
+      const Instruction *inst = cs.getInstruction();
+
+      // Create the obj node
+      NodeIndex objIndex = nodeFactory.createObjectNode(inst);
+
+      // Get the pointer node
+      NodeIndex ptrIndex = nodeFactory.getValueNodeFor(inst);
+      assert(ptrIndex != AndersNodeFactory::InvalidIndex);
+  
+      constraints.emplace_back(AndersConstraint::ADDR_OF, ptrIndex, objIndex);
+      return;
+
     } else // Non-external function call
     {
       if (cs.getType()->isPointerTy()) {

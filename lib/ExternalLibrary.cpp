@@ -70,7 +70,10 @@ static const char *mallocFuncs[] = {"malloc",
                                     "klee_pmem_alloc_pmem",
                                     nullptr};
 
-static const char *reallocFuncs[] = {"realloc", "strtok", "strtok_r", nullptr};
+static const char *reallocFuncs[] = {"realloc", 
+                                     "strtok", 
+                                     "strtok_r", 
+                                     nullptr};
 
 static const char *retArg0Funcs[] = {
     "fgets",    "gets",       "stpcpy",  "strcat",  "strchr",
@@ -102,12 +105,18 @@ static const char *memcpyFuncs[] = {"llvm.memcpy.i32",
 static const char *convertFuncs[] = {"strtod",  "strtof",  "strtol", "strtold",
                                      "strtoll", "strtoul", nullptr};
 
+static const char *forceIgnoreFuncs[] = {"__create_pmem_dfile", nullptr};
+
 static bool lookupName(const char *table[], const char *str) {
   for (unsigned i = 0; table[i] != nullptr; ++i) {
     if (strcmp(table[i], str) == 0)
       return true;
   }
   return false;
+}
+
+static void printVal(const Value *v) {
+  errs() << *v << "\n";
 }
 
 // This function identifies if the external callsite is a library function call,
@@ -122,6 +131,10 @@ bool Andersen::addConstraintForExternalLibrary(ImmutableCallSite cs,
 
   // These functions don't induce any points-to constraints
   if (lookupName(noopFuncs, f->getName().data()))
+    return true;
+
+  // (iangneal): ignore allocations in these functions 
+  if (lookupName(forceIgnoreFuncs, cs.getInstruction()->getFunction()->getName().data()))
     return true;
 
   // Realloc-like library is a little different: if the first argument is
@@ -147,7 +160,13 @@ bool Andersen::addConstraintForExternalLibrary(ImmutableCallSite cs,
                "Failed to find arg0 node");
         constraints.emplace_back(AndersConstraint::STORE, ptrIndex, objIndex);
       } else {
+        errs() << "---- UNRECOGNIZED MALLOC ----\n";
         errs() << f->getName() << '\n';
+        printVal(inst);
+        printVal(dyn_cast<CallInst>(inst)->getCalledValue()->stripPointerCasts());
+        if (isa<LoadInst>(dyn_cast<CallInst>(inst)->getCalledValue()->stripPointerCasts())) {
+          printVal(dyn_cast<LoadInst>(dyn_cast<CallInst>(inst)->getCalledValue()->stripPointerCasts())->getPointerOperand());
+        }
         assert(false && "unrecognized malloc call");
       }
     } else {
