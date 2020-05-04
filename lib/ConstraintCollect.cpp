@@ -333,14 +333,22 @@ void Andersen::collectConstraintsForInstruction(const Instruction *inst) {
     }
     break;
   }
+  // XXX could be smarter about ExtractValue and InsertValue
+  case Instruction::LandingPad:
+  case Instruction::Resume:
   case Instruction::ExtractValue:
   case Instruction::InsertValue: {
     if (!inst->getType()->isPointerTy())
       break;
+
+    // We really don't know what it points to
+    NodeIndex dstIndex = nodeFactory.getValueNodeFor(inst);
+    assert(dstIndex != AndersNodeFactory::InvalidIndex &&
+           "Failed to find dst node");
+    constraints.emplace_back(AndersConstraint::COPY, dstIndex,
+                             nodeFactory.getUniversalPtrNode());
+    break;
   }
-  // We have no intention to support exception-handling in the near future
-  case Instruction::LandingPad:
-  case Instruction::Resume:
   // Atomic instructions can be modeled by their non-atomic counterparts. To be
   // supported
   case Instruction::AtomicRMW:
@@ -520,6 +528,11 @@ void Andersen::addArgumentConstraintForCall(ImmutableCallSite cs,
              "Failed to find formal arg node!");
       if (actual->getType()->isPointerTy()) {
         NodeIndex aIndex = nodeFactory.getValueNodeFor(actual);
+        // Function arg could be an inline bitcast
+        if (aIndex == AndersNodeFactory::InvalidIndex) {
+          aIndex = nodeFactory.getValueNodeFor(actual->stripPointerCasts());
+        }
+
         assert(aIndex != AndersNodeFactory::InvalidIndex &&
                "Failed to find actual arg node!");
         constraints.emplace_back(AndersConstraint::COPY, fIndex, aIndex);
