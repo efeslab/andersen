@@ -3,6 +3,7 @@
 #include "llvm/ADT/SmallVector.h"
 #include "llvm/Analysis/ValueTracking.h"
 #include "llvm/IR/Constants.h"
+#include "llvm/IR/GlobalAlias.h"
 #include "llvm/Support/raw_ostream.h"
 
 #include <limits>
@@ -82,10 +83,24 @@ NodeIndex AndersNodeFactory::getValueNodeFor(const Value *val) const {
 
   // errs() << "looking up " << *val << "\n";
   auto itr = valueNodeMap.find(val);
-  if (itr == valueNodeMap.end())
-    return InvalidIndex;
-  else
+  if (itr != valueNodeMap.end())
     return itr->second;
+
+  // Not found, could potentially be a GlobalAlias
+  NodeIndex retry;
+  if (const GlobalAlias *ga = dyn_cast<GlobalAlias>(val)) {
+    if ((retry = getValueNodeFor(ga->getAliasee())) != InvalidIndex)
+      return retry;
+  }
+
+  // Not found, could potentially be an inline bitcast
+  const Value *stripped = val->stripPointerCasts();
+  if (stripped != val) {
+    if ((retry = getValueNodeFor(stripped)) != InvalidIndex)
+      return retry;
+  }
+
+  return InvalidIndex;
 }
 
 NodeIndex

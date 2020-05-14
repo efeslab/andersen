@@ -528,10 +528,6 @@ void Andersen::addArgumentConstraintForCall(ImmutableCallSite cs,
              "Failed to find formal arg node!");
       if (actual->getType()->isPointerTy()) {
         NodeIndex aIndex = nodeFactory.getValueNodeFor(actual);
-        // Function arg could be an inline bitcast
-        if (aIndex == AndersNodeFactory::InvalidIndex) {
-          aIndex = nodeFactory.getValueNodeFor(actual->stripPointerCasts());
-        }
 
         assert(aIndex != AndersNodeFactory::InvalidIndex &&
                "Failed to find actual arg node!");
