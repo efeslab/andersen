@@ -479,7 +479,9 @@ void Andersen::addConstraintForCall(ImmutableCallSite cs) {
       for (unsigned i = 0; i < f.arg_size(); ++i) {
         const Argument *f_arg = (f.arg_begin() + i);
         const Value *c_arg = (cs.arg_begin() + i)->get();
-        if (f_arg->getType() != c_arg->getType()) {
+        if (f_arg && !c_arg) {
+          equivalent_args = false;
+        } else if (f_arg->getType() != c_arg->getType()) {
           equivalent_args = false;
         }
       }
