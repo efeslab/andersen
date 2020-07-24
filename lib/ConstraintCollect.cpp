@@ -351,10 +351,23 @@ void Andersen::collectConstraintsForInstruction(const Instruction *inst) {
   }
   // Atomic instructions can be modeled by their non-atomic counterparts. To be
   // supported
-  case Instruction::AtomicRMW:
-  case Instruction::AtomicCmpXchg: {
+  case Instruction::AtomicRMW: {
     errs() << *inst << "\n";
     llvm_unreachable("not implemented yet");
+  }
+  // (iangneal): Copy/modify from store
+  // ptr, cmp, new_val
+  case Instruction::AtomicCmpXchg: {
+    if (inst->getOperand(2)->getType()->isPointerTy()) {
+      NodeIndex srcIndex = nodeFactory.getValueNodeFor(inst->getOperand(2));
+      assert(srcIndex != AndersNodeFactory::InvalidIndex &&
+             "Failed to find store src node");
+      NodeIndex dstIndex = nodeFactory.getValueNodeFor(inst->getOperand(0));
+      assert(dstIndex != AndersNodeFactory::InvalidIndex &&
+             "Failed to find store dst node");
+      constraints.emplace_back(AndersConstraint::STORE, dstIndex, srcIndex);
+    }
+    break;
   }
   default: {
     if (inst->getType()->isPointerTy()) {
