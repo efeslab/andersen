@@ -32,7 +32,7 @@ static const char *noopFuncs[] = {
     "strftime", "qsort", "popen", "pclose", "rand", "rand_r", "srand", "seed48",
     "drand48", "lrand48", "srand48", "__isoc99_sscanf", "__isoc99_fscanf",
     "fclose", "close", "perror",
-    "strerror", // this function returns an extenal static pointer
+    "strerror", "strerror_r", "strerror_l", // this function returns an extenal static pointer
     "__errno_location", "__ctype_b_loc", "abs", "difftime", "setbuf", "_ZdlPv",
     "_ZdaPv", // delete and delete[]
     "fesetround", "fegetround", "fetestexcept", "feraiseexcept",
@@ -181,6 +181,7 @@ bool Andersen::addConstraintForExternalLibrary(ImmutableCallSite cs,
       (isReallocLike && isa<ConstantPointerNull>(cs.getArgument(0)))) {
     NodeIndex retIndex = nodeFactory.getValueNodeFor(cs.getInstruction());
     if (retIndex != AndersNodeFactory::InvalidIndex) {
+      errs() << __FUNCTION__ << "\t" << f->getName() << "\n";
       NodeIndex arg0Index = nodeFactory.getValueNodeFor(cs.getArgument(0));
       assert(arg0Index != AndersNodeFactory::InvalidIndex &&
              "Failed to find arg0 node");
