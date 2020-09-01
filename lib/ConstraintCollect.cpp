@@ -87,7 +87,11 @@ void Andersen::collectConstraintsForGlobals(const Module &M) {
   // Create a pointer and an object for each global variable
   for (auto const &globalVal : M.globals()) {
     NodeIndex gVal = nodeFactory.createValueNode(&globalVal);
-    NodeIndex gObj = nodeFactory.createObjectNode(&globalVal);
+    NodeIndex gObj = nodeFactory.getUniversalObjNode();
+    if (!EnableMmapAA) {
+      gObj = nodeFactory.createObjectNode(&globalVal);
+    }
+
     constraints.emplace_back(AndersConstraint::ADDR_OF, gVal, gObj);
   }
 
@@ -96,7 +100,11 @@ void Andersen::collectConstraintsForGlobals(const Module &M) {
     // If f is an addr-taken function, create a pointer and an object for it
     if (f.hasAddressTaken()) {
       NodeIndex fVal = nodeFactory.createValueNode(&f);
-      NodeIndex fObj = nodeFactory.createObjectNode(&f);
+      NodeIndex fObj = nodeFactory.getUniversalObjNode();
+      if (!EnableMmapAA) {
+        fObj = nodeFactory.createObjectNode(&f);
+      }
+
       constraints.emplace_back(AndersConstraint::ADDR_OF, fVal, fObj);
     }
 
@@ -119,6 +127,8 @@ void Andersen::collectConstraintsForGlobals(const Module &M) {
         nodeFactory.createValueNode(&*itr);
     }
   }
+
+  if (EnableMmapAA) return;
 
   // Init globals here since an initializer may refer to a global var/func below
   // it
@@ -170,7 +180,11 @@ void Andersen::collectConstraintsForInstruction(const Instruction *inst) {
     NodeIndex valNode = nodeFactory.getValueNodeFor(inst);
     assert(valNode != AndersNodeFactory::InvalidIndex &&
            "Failed to find alloca value node");
-    NodeIndex objNode = nodeFactory.createObjectNode(inst);
+    NodeIndex objNode = nodeFactory.getUniversalObjNode();
+    if (!EnableMmapAA) {
+      objNode = nodeFactory.createObjectNode(inst);
+    }
+
     constraints.emplace_back(AndersConstraint::ADDR_OF, valNode, objNode);
     break;
   }

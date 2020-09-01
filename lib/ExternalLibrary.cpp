@@ -10,6 +10,14 @@
 
 using namespace llvm;
 
+/**
+ * My reasoning is: just have everything point to the same "universal" object,
+ * which should simplify all the constraints.
+ */
+cl::opt<bool> EnableMmapAA("enable-mmap-aa",
+    cl::init(false),
+    cl::desc("Enable AA which only computes mmap aliases."));
+
 static const char *noopFuncs[] = {
     "log", "log10", "exp", "exp2", "exp10", "strcmp", "strncmp", "strlen",
     "atoi", "atof", "atol", "atoll", "remove", "unlink", "rename", "memcmp",
@@ -70,6 +78,10 @@ static const char *mallocFuncs[] = {"malloc",
                                     "klee_pmem_alloc_pmem",
                                     nullptr};
 
+// (iangneal): for mmap AA
+static const char *mallocFnMmapAA[] = {
+    "mmap", "mmap64", "klee_pmem_mark_persistent", "klee_pmem_alloc_pmem", nullptr};
+
 static const char *reallocFuncs[] = {"realloc", 
                                      "strtok", 
                                      "strtok_r", 
@@ -129,6 +141,35 @@ bool Andersen::addConstraintForExternalLibrary(ImmutableCallSite cs,
   assert((f->isDeclaration() || f->isIntrinsic()) &&
          "Not an external function!");
 
+
+  if (EnableMmapAA && lookupName(mallocFnMmapAA, f->getName().data())) {
+    
+    const Instruction *inst = cs.getInstruction();
+
+    // Create the obj node
+    NodeIndex objIndex = nodeFactory.createObjectNode(inst);
+
+    // Get the pointer node
+    NodeIndex ptrIndex = nodeFactory.getValueNodeFor(inst);
+    if (ptrIndex == AndersNodeFactory::InvalidIndex) {
+      errs() << "---- UNRECOGNIZED MALLOC ----\n";
+      errs() << f->getName() << '\n';
+      printVal(inst);
+      printVal(dyn_cast<CallInst>(inst)->getCalledValue()->stripPointerCasts());
+      if (isa<LoadInst>(dyn_cast<CallInst>(inst)->getCalledValue()->stripPointerCasts())) {
+        printVal(dyn_cast<LoadInst>(dyn_cast<CallInst>(inst)->getCalledValue()->stripPointerCasts())->getPointerOperand());
+      }
+
+      assert(false && "unrecognized malloc call");
+    } else {
+      // Normal malloc-like call
+      constraints.emplace_back(AndersConstraint::ADDR_OF, ptrIndex, objIndex);
+    }
+
+    return true;
+  }
+  
+
   // These functions don't induce any points-to constraints
   if (lookupName(noopFuncs, f->getName().data()))
     return true;
@@ -148,7 +189,12 @@ bool Andersen::addConstraintForExternalLibrary(ImmutableCallSite cs,
     const Instruction *inst = cs.getInstruction();
 
     // Create the obj node
-    NodeIndex objIndex = nodeFactory.createObjectNode(inst);
+    // NodeIndex objIndex = nodeFactory.createObjectNode(inst);
+    NodeIndex objIndex = nodeFactory.getUniversalObjNode();
+    assert(objIndex != AndersNodeFactory::InvalidIndex && "wut");
+    if (!EnableMmapAA) {
+      objIndex = nodeFactory.createObjectNode(inst);
+    }
 
     // Get the pointer node
     NodeIndex ptrIndex = nodeFactory.getValueNodeFor(inst);
@@ -248,8 +294,12 @@ bool Andersen::addConstraintForExternalLibrary(ImmutableCallSite cs,
   }
 
   if (f->getName() == "llvm.va_start") {
+    // errs() << "THANG\n";
+    // errs() << *f << "\n";
     const Instruction *inst = cs.getInstruction();
+    // errs() << *inst << "\n";
     const Function *parentF = inst->getParent()->getParent();
+    // errs() << *parentF << "\n";
     assert(parentF->getFunctionType()->isVarArg());
     NodeIndex arg0Index = nodeFactory.getValueNodeFor(cs.getArgument(0));
     assert(arg0Index != AndersNodeFactory::InvalidIndex &&

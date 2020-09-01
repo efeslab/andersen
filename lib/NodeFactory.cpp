@@ -138,9 +138,9 @@ NodeIndex AndersNodeFactory::getObjectNodeFor(const Value *val) const {
       return getObjectNodeForConstant(c);
 
   auto itr = objNodeMap.find(val);
-  if (itr == objNodeMap.end())
+  if (itr == objNodeMap.end()) {
     return InvalidIndex;
-  else
+  } else
     return itr->second;
 }
 

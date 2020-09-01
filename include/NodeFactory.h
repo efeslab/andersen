@@ -9,6 +9,8 @@
 
 #include <vector>
 
+extern llvm::cl::opt<bool> EnableMmapAA;
+
 // AndersNode class - This class is used to represent a node in the constraint
 // graph.  Due to various optimizations, it is not always the case that there is
 // always a mapping from a Node to a Value. (In particular, we add artificial
