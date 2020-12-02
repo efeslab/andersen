@@ -431,7 +431,7 @@ void Andersen::addConstraintForCall(ImmutableCallSite cs) {
         return;
       else // Unresolved library call: ruin everything!
       {
-        errs() << "Unresolved ext function: " << f->getName() << "\n";
+        // errs() << "Unresolved ext function: " << f->getName() << "\n";
         if (cs.getType()->isPointerTy()) {
           NodeIndex retIndex = nodeFactory.getValueNodeFor(cs.getInstruction());
           assert(retIndex != AndersNodeFactory::InvalidIndex &&

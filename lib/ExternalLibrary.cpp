@@ -227,7 +227,7 @@ bool Andersen::addConstraintForExternalLibrary(ImmutableCallSite cs,
       (isReallocLike && isa<ConstantPointerNull>(cs.getArgument(0)))) {
     NodeIndex retIndex = nodeFactory.getValueNodeFor(cs.getInstruction());
     if (retIndex != AndersNodeFactory::InvalidIndex) {
-      errs() << __FUNCTION__ << "\t" << f->getName() << "\n";
+      // errs() << __FUNCTION__ << "\t" << f->getName() << "\n";
       NodeIndex arg0Index = nodeFactory.getValueNodeFor(cs.getArgument(0));
       assert(arg0Index != AndersNodeFactory::InvalidIndex &&
              "Failed to find arg0 node");
